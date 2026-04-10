@@ -49,14 +49,220 @@
 #define CH_COMIDA '*'
 #define CH_VACIO  '.'
 
+#include "listadl.h"
+
+dllista *crear_elemento(DATO dato) {
+    dllista *nuevo = (dllista *)malloc(sizeof(dllista));
+    if (nuevo == NULL)
+        return NULL;
+    nuevo->dato = dato;
+    nuevo->previo = NULL;
+    nuevo->siguiente = NULL;
+    return nuevo;
+}
+
+ListaDL *crear_lista(void) {
+    ListaDL *lista = (ListaDL *)malloc(sizeof(ListaDL));
+    if (lista == NULL)
+        return NULL;
+    lista->cabeza = NULL;
+    lista->longitud = 0;
+    return lista;
+}
+
+void insertar_inicio(ListaDL *lista, DATO dato) {
+    dllista *nuevo = crear_elemento(dato);
+    if (nuevo == NULL)
+        return;
+
+    if (lista->cabeza == NULL) {
+        lista->cabeza = nuevo;
+    } else {
+        nuevo->siguiente = lista->cabeza;
+        lista->cabeza->previo = nuevo;
+        lista->cabeza = nuevo;
+    }
+    lista->longitud++;
+}
+
+void insertar_final(ListaDL *lista, DATO dato) {
+    dllista *nuevo = crear_elemento(dato);
+    if (nuevo == NULL)
+        return;
+
+    if (lista->cabeza == NULL) {
+        lista->cabeza = nuevo;
+    } else {
+        dllista *actual = lista->cabeza;
+        while (actual->siguiente != NULL)
+            actual = actual->siguiente;
+        actual->siguiente = nuevo;
+        nuevo->previo = actual;
+    }
+    lista->longitud++;
+}
+
+void insertar_en_posicion(ListaDL *lista, DATO dato, int posicion) {
+    if (posicion < 0 || posicion > lista->longitud)
+        return;
+
+    if (posicion == 0) {
+        insertar_inicio(lista, dato);
+        return;
+    }
+    if (posicion == lista->longitud) {
+        insertar_final(lista, dato);
+        return;
+    }
+
+    dllista *nuevo = crear_elemento(dato);
+    if (nuevo == NULL)
+        return;
+
+    dllista *actual = lista->cabeza;
+    for (int i = 0; i < posicion; i++)
+        actual = actual->siguiente;
+
+    nuevo->previo = actual->previo;
+    nuevo->siguiente = actual;
+    actual->previo->siguiente = nuevo;
+    actual->previo = nuevo;
+    lista->longitud++;
+}
+
+DATO eliminar_inicio(ListaDL *lista) {
+    if (lista->cabeza == NULL)
+        return -1;
+
+    dllista *eliminado = lista->cabeza;
+    DATO dato = eliminado->dato;
+
+    if (lista->cabeza->siguiente == NULL) {
+        lista->cabeza = NULL;
+    } else {
+        lista->cabeza = lista->cabeza->siguiente;
+        lista->cabeza->previo = NULL;
+    }
+
+    free(eliminado);
+    lista->longitud--;
+    return dato;
+}
+
+DATO eliminar_final(ListaDL *lista) {
+    if (lista->cabeza == NULL)
+        return -1;
+
+    dllista *actual = lista->cabeza;
+    while (actual->siguiente != NULL)
+        actual = actual->siguiente;
+
+    DATO dato = actual->dato;
+
+    if (actual->previo == NULL) {
+        lista->cabeza = NULL;
+    } else {
+        actual->previo->siguiente = NULL;
+    }
+
+    free(actual);
+    lista->longitud--;
+    return dato;
+}
+
+DATO eliminar_en_posicion(ListaDL *lista, int posicion) {
+    if (posicion < 0 || posicion >= lista->longitud)
+        return -1;
+
+    if (posicion == 0)
+        return eliminar_inicio(lista);
+    if (posicion == lista->longitud - 1)
+        return eliminar_final(lista);
+
+    dllista *actual = lista->cabeza;
+    for (int i = 0; i < posicion; i++)
+        actual = actual->siguiente;
+
+    DATO dato = actual->dato;
+    actual->previo->siguiente = actual->siguiente;
+    actual->siguiente->previo = actual->previo;
+    free(actual);
+    lista->longitud--;
+    return dato;
+}
+
+int buscar(ListaDL *lista, DATO dato) {
+    dllista *actual = lista->cabeza;
+    int posicion = 0;
+    while (actual != NULL) {
+        if (actual->dato == dato)
+            return posicion;
+        actual = actual->siguiente;
+        posicion++;
+    }
+    return -1;
+}
+
+DATO obtener(ListaDL *lista, int posicion) {
+    if (posicion < 0 || posicion >= lista->longitud)
+        return -1;
+
+    dllista *actual = lista->cabeza;
+    for (int i = 0; i < posicion; i++)
+        actual = actual->siguiente;
+    return actual->dato;
+}
+
+int esta_vacia(ListaDL *lista) {
+    return lista->cabeza == NULL;
+}
+
+int longitud(ListaDL *lista) {
+    return lista->longitud;
+}
+
+void imprimir_lista(ListaDL *lista) {
+    dllista *actual = lista->cabeza;
+    while (actual != NULL) {
+        printf("[%d]", actual->dato);
+        if (actual->siguiente != NULL)
+            printf(" <-> ");
+        actual = actual->siguiente;
+    }
+    printf(" -> NULL\n");
+}
+
+void imprimir_lista_reversa(ListaDL *lista) {
+    dllista *actual = lista->cabeza;
+    if (actual == NULL) {
+        printf(" -> NULL\n");
+        return;
+    }
+    while (actual->siguiente != NULL)
+        actual = actual->siguiente;
+    while (actual != NULL) {
+        printf("[%d]", actual->dato);
+        if (actual->previo != NULL)
+            printf(" <-> ");
+        actual = actual->previo;
+    }
+    printf(" -> NULL\n");
+}
+
+void liberar_lista(ListaDL *lista) {
+    dllista *actual = lista->cabeza;
+    while (actual != NULL) {
+        dllista *siguiente = actual->siguiente;
+        free(actual);
+        actual = siguiente;
+    }
+    free(lista);
+}
+
 /* ================================================================
  *  Funciones proporcionadas (no modificar)
  * ================================================================ */
 
-/*
- * Genera una posición aleatoria para la comida que no coincida
- * con ningún segmento de la víbora.
- */
 DATO generar_comida(ListaDL *vibora) {
     DATO pos;
     do {
@@ -67,13 +273,9 @@ DATO generar_comida(ListaDL *vibora) {
     return pos;
 }
 
-/*
- * Dibuja el tablero en la terminal.
- */
 void dibujar_tablero(ListaDL *vibora, DATO comida) {
     char tablero[FILAS][COLUMNAS + 1];
 
-    /* Fondo vacío */
     for (int f = 0; f < FILAS; f++) {
         for (int c = 0; c < COLUMNAS; c++) {
             if (f == 0 || f == FILAS - 1 || c == 0 || c == COLUMNAS - 1)
@@ -84,10 +286,8 @@ void dibujar_tablero(ListaDL *vibora, DATO comida) {
         tablero[f][COLUMNAS] = '\0';
     }
 
-    /* Colocar comida */
     tablero[FILA(comida)][COL(comida)] = CH_COMIDA;
 
-    /* Colocar cuerpo de la víbora */
     dllista *seg = vibora->cabeza;
     int primero = 1;
     while (seg != NULL) {
@@ -98,16 +298,12 @@ void dibujar_tablero(ListaDL *vibora, DATO comida) {
         seg = seg->siguiente;
     }
 
-    /* Imprimir */
     printf("\n");
     for (int f = 0; f < FILAS; f++)
         printf("  %s\n", tablero[f]);
     printf("\n");
 }
 
-/*
- * Imprime el estado del juego.
- */
 void mostrar_estado(int turno, int puntaje, int dir) {
     const char *nombres[] = {"ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA"};
     printf("  Turno: %d | Puntaje: %d | Dirección: %s\n",
@@ -118,109 +314,46 @@ void mostrar_estado(int turno, int puntaje, int dir) {
  *  Funciones por completar
  * ================================================================ */
 
-/*
- *  TODO 1: calcular_nueva_cabeza
- *
- *  Dada la posición actual de la cabeza y una dirección, calcula
- *  la nueva posición de la cabeza.
- *
- *  Usa las macros FILA(), COL() y POS() para descomponer y
- *  recomponer la posición.
- *
- *  Parámetros:
- *    - cabeza_actual: posición codificada de la cabeza
- *    - direccion: ARRIBA, ABAJO, IZQUIERDA o DERECHA
- *
- *  Retorna: la nueva posición codificada
- */
 DATO calcular_nueva_cabeza(DATO cabeza_actual, int direccion) {
     int f = FILA(cabeza_actual);
     int c = COL(cabeza_actual);
 
-    /* -------- COMPLETAR --------
-     * Modifica f y/o c según la dirección:
-     *   ARRIBA    -> f disminuye en 1
-     *   ABAJO     -> f aumenta en 1
-     *   IZQUIERDA -> c disminuye en 1
-     *   DERECHA   -> c aumenta en 1
-     * --------------------------- */
-
-
+    if (direccion == ARRIBA) f--;
+    else if (direccion == ABAJO) f++;
+    else if (direccion == IZQUIERDA) c--;
+    else if (direccion == DERECHA) c++;
 
     return POS(f, c);
 }
 
-/*
- *  TODO 2: colision_pared
- *
- *  Verifica si la posición dada está fuera de los límites del tablero
- *  (es decir, sobre el borde '#').
- *
- *  Retorna: 1 si hay colisión con la pared, 0 si no.
- */
 int colision_pared(DATO posicion) {
     int f = FILA(posicion);
     int c = COL(posicion);
 
-    /* -------- COMPLETAR --------
-     * Retorna 1 si f o c están en el borde del tablero:
-     *   f <= 0, f >= FILAS-1, c <= 0, c >= COLUMNAS-1
-     * --------------------------- */
+    if (f <= 0 || f >= FILAS - 1 || c <= 0 || c >= COLUMNAS - 1)
+        return 1;
 
-
-    return 0; /* Sustituir por la condición correcta */
+    return 0;
 }
 
-/*
- *  TODO 3: colision_cuerpo
- *
- *  Verifica si la nueva posición de la cabeza coincide con algún
- *  segmento del cuerpo de la víbora.
- *
- *  Pista: usa la función buscar() de listadl.
- *
- *  Retorna: 1 si hay colisión, 0 si no.
- */
 int colision_cuerpo(ListaDL *vibora, DATO nueva_pos) {
-    /* -------- COMPLETAR --------
-     * Usa buscar(vibora, nueva_pos) para saber si la posición
-     * ya está ocupada por un segmento.
-     * --------------------------- */
+    if (buscar(vibora, nueva_pos) != -1)
+        return 1;
 
-
-    return 0; /* Sustituir */
+    return 0;
 }
 
-/*
- *  TODO 4: mover_vibora
- *
- *  Mueve la víbora en la dirección indicada.
- *
- *  Pasos:
- *    1. Calcula la nueva posición de la cabeza con calcular_nueva_cabeza().
- *    2. Inserta la nueva posición AL INICIO de la lista (la cabeza avanza).
- *    3. Si la nueva posición NO coincide con la comida:
- *       - Elimina el ÚLTIMO elemento de la lista (la cola se recoge).
- *       - comio = 0
- *    4. Si coincide con la comida:
- *       - NO elimina la cola (la víbora crece).
- *       - comio = 1
- *
- *  Retorna: 1 si comió, 0 si no.
- *
- *  Pista: usa insertar_inicio() y eliminar_final() de listadl.
- */
 int mover_vibora(ListaDL *vibora, int direccion, DATO comida) {
     DATO nueva_pos = calcular_nueva_cabeza(vibora->cabeza->dato, direccion);
 
-    /* -------- COMPLETAR --------
-     * 1. Inserta nueva_pos al inicio de la lista.
-     * 2. Si nueva_pos == comida, retorna 1 (comió).
-     * 3. Si no, elimina el último elemento y retorna 0.
-     * --------------------------- */
+    insertar_inicio(vibora, nueva_pos);
 
-
-    return 0; /* Sustituir */
+    if (nueva_pos == comida) {
+        return 1;
+    } else {
+        eliminar_final(vibora);
+        return 0;
+    }
 }
 
 /* ================================================================
@@ -230,7 +363,6 @@ int mover_vibora(ListaDL *vibora, int direccion, DATO comida) {
 int main(void) {
     srand(42);
 
-    /* Crear la víbora con 3 segmentos en el centro del tablero */
     ListaDL *vibora = crear_lista();
     int f_ini = FILAS / 2;
     int c_ini = COLUMNAS / 2;
@@ -241,7 +373,6 @@ int main(void) {
     DATO comida = generar_comida(vibora);
     int puntaje = 0;
 
-    /* Secuencia de movimientos predeterminada para la simulación */
     int movimientos[] = {
         DERECHA, DERECHA, DERECHA, DERECHA, DERECHA,
         ABAJO, ABAJO, ABAJO,
@@ -266,7 +397,6 @@ int main(void) {
         int dir = movimientos[i];
         DATO nueva = calcular_nueva_cabeza(vibora->cabeza->dato, dir);
 
-        /* Verificar colisiones */
         if (colision_pared(nueva)) {
             printf("  ¡GAME OVER! La víbora chocó con la pared.\n");
             break;
@@ -291,7 +421,6 @@ int main(void) {
     printf("\n  Puntaje final: %d\n", puntaje);
     printf("  Longitud final: %d segmentos\n", longitud(vibora));
 
-    /* Demostrar recorrido inverso (utilidad del puntero previo) */
     printf("\n  Víbora (cabeza -> cola): ");
     imprimir_lista(vibora);
     printf("  Víbora (cola -> cabeza): ");
