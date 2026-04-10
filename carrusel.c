@@ -1,31 +1,32 @@
 /*
  * ==========================================================================
- *  EJERCICIO 2 — Carrusel de inventario (lista doblemente ligada circular)
+ * EJERCICIO 2 — Carrusel de inventario (lista doblemente ligada circular)
  * ==========================================================================
  *
- *  En muchos videojuegos el jugador dispone de un inventario de herramientas
- *  que puede recorrer cíclicamente con las teclas "siguiente" y "anterior".
+ * En muchos videojuegos el jugador dispone de un inventario de herramientas
+ * que puede recorrer cíclicamente con las teclas "siguiente" y "anterior".
  *
- *  En este ejercicio se implementa un CARRUSEL CIRCULAR usando la estructura
- *  dllista directamente (sin ListaDL), conectando el último elemento con el
- *  primero en ambos sentidos. Un puntero "seleccion" indica la herramienta
- *  actualmente equipada.
+ * En este ejercicio se implementa un CARRUSEL CIRCULAR usando la estructura
+ * dllista directamente (sin ListaDL), conectando el último elemento con el
+ * primero en ambos sentidos. Un puntero "seleccion" indica la herramienta
+ * actualmente equipada.
  *
- *  ¿Por qué lista doblemente ligada?
- *    • Avanzar y retroceder en el carrusel en O(1) gracias a los punteros
- *      "siguiente" y "previo".
- *    • Insertar y eliminar herramientas en cualquier posición sin perder
- *      la capacidad de navegar en ambas direcciones.
+ * ¿Por qué lista doblemente ligada?
+ * • Avanzar y retroceder en el carrusel en O(1) gracias a los punteros
+ * "siguiente" y "previo".
+ * • Insertar y eliminar herramientas en cualquier posición sin perder
+ * la capacidad de navegar en ambas direcciones.
  *
- *  Las y los alumnos deben completar las funciones marcadas con TODO.
- *  Compile con:
- *      gcc -Wall -Wextra -o carrusel carrusel.c listadl.c
+ * Compile con:
+ * gcc -Wall -Wextra -o carrusel carrusel.c listadl.c
  *
  * ==========================================================================
  */
 
 #include "listadl.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h> /* Necesario para free() si no está en listadl.h */
 
 /* ---------- Herramientas del inventario ---------- */
 /* Cada herramienta se identifica con un entero (DATO) */
@@ -51,7 +52,7 @@ const char *nombre_herramienta(DATO id) {
 }
 
 /* ================================================================
- *  Funciones proporcionadas (no modificar)
+ * Funciones proporcionadas (no modificar)
  * ================================================================ */
 
 /*
@@ -117,24 +118,14 @@ void imprimir_inventario(dllista *desde) {
 }
 
 /* ================================================================
- *  Funciones por completar
+ * Funciones completadas
  * ================================================================ */
 
 /*
- *  TODO 1: insertar_en_carrusel
+ * insertar_en_carrusel
  *
- *  Inserta un nuevo elemento en el carrusel circular DESPUÉS del
- *  nodo "despues_de".
- *
- *  Si el carrusel está vacío (despues_de == NULL), crea un nodo
- *  que apunte a sí mismo en ambos sentidos (previo y siguiente).
- *
- *  Si no está vacío, inserta el nuevo nodo entre "despues_de" y
- *  "despues_de->siguiente", actualizando los 4 punteros necesarios.
- *
- *  Retorna: un puntero al nuevo nodo insertado.
- *
- *  Pista: usa crear_elemento() para crear el nodo.
+ * Inserta un nuevo elemento en el carrusel circular DESPUÉS del
+ * nodo "despues_de".
  */
 dllista *insertar_en_carrusel(dllista *despues_de, DATO dato) {
     dllista *nuevo = crear_elemento(dato);
@@ -142,104 +133,87 @@ dllista *insertar_en_carrusel(dllista *despues_de, DATO dato) {
         return despues_de;
 
     if (despues_de == NULL) {
-        /* -------- COMPLETAR --------
-         * El carrusel está vacío.
-         * El nuevo nodo debe apuntar a sí mismo en ambos sentidos:
-         *   nuevo->siguiente = ???
-         *   nuevo->previo    = ???
-         * --------------------------- */
-
-
+        /* El carrusel está vacío.
+         * El nuevo nodo debe apuntar a sí mismo en ambos sentidos. */
+        nuevo->siguiente = nuevo;
+        nuevo->previo = nuevo;
         return nuevo;
     }
 
-    /* -------- COMPLETAR --------
-     * Insertar "nuevo" entre "despues_de" y "despues_de->siguiente".
-     * Hay que actualizar 4 punteros:
-     *   nuevo->siguiente      = ???
-     *   nuevo->previo         = ???
-     *   despues_de->siguiente->previo = ???
-     *   despues_de->siguiente = ???
-     * Cuidado con el orden de las asignaciones.
-     * --------------------------- */
-
+    /* Insertar "nuevo" entre "despues_de" y "despues_de->siguiente". */
+    nuevo->siguiente = despues_de->siguiente;
+    nuevo->previo = despues_de;
+    
+    despues_de->siguiente->previo = nuevo;
+    despues_de->siguiente = nuevo;
 
     return nuevo;
 }
 
 /*
- *  TODO 2: eliminar_del_carrusel
+ * eliminar_del_carrusel
  *
- *  Elimina el nodo "objetivo" del carrusel circular y libera su memoria.
- *
- *  Si el carrusel solo tiene un elemento (objetivo->siguiente == objetivo),
- *  libera el nodo y retorna NULL.
- *
- *  Si tiene más elementos, conecta el nodo previo con el siguiente,
- *  libera el nodo eliminado, y retorna el nodo siguiente (la nueva
- *  selección).
- *
- *  Retorna: puntero al nodo siguiente, o NULL si el carrusel queda vacío.
+ * Elimina el nodo "objetivo" del carrusel circular y libera su memoria.
  */
 dllista *eliminar_del_carrusel(dllista *objetivo) {
     if (objetivo == NULL)
         return NULL;
 
-    /* -------- COMPLETAR --------
-     * Caso 1: solo hay un elemento (objetivo->siguiente == objetivo).
-     *   Libera el nodo y retorna NULL.
-     *
-     * Caso 2: hay más elementos.
-     *   - Guarda un puntero al nodo siguiente (será el retorno).
-     *   - Conecta objetivo->previo->siguiente con objetivo->siguiente.
-     *   - Conecta objetivo->siguiente->previo con objetivo->previo.
-     *   - Libera objetivo.
-     *   - Retorna el nodo siguiente.
-     * --------------------------- */
+    /* Caso 1: solo hay un elemento */
+    if (objetivo->siguiente == objetivo) {
+        free(objetivo);
+        return NULL;
+    }
 
-
-    return NULL; /* Sustituir */
+    /* Caso 2: hay más elementos */
+    dllista *siguiente_nodo = objetivo->siguiente;
+    
+    /* Conectar el nodo anterior con el siguiente, saltando el "objetivo" */
+    objetivo->previo->siguiente = objetivo->siguiente;
+    objetivo->siguiente->previo = objetivo->previo;
+    
+    free(objetivo);
+    
+    return siguiente_nodo;
 }
 
 /*
- *  TODO 3: avanzar
+ * avanzar
  *
- *  Avanza la selección "n" posiciones hacia adelante (siguiente).
- *
- *  Retorna: el nodo en la nueva posición.
+ * Avanza la selección "n" posiciones hacia adelante (siguiente).
  */
 dllista *avanzar(dllista *seleccion, int n) {
-    /* -------- COMPLETAR --------
-     * Recorre "n" veces usando seleccion->siguiente.
-     * --------------------------- */
-
-
-    return seleccion; /* Sustituir si es necesario */
+    if (seleccion == NULL) return NULL;
+    
+    /* Recorre "n" veces hacia adelante */
+    for (int i = 0; i < n; i++) {
+        seleccion = seleccion->siguiente;
+    }
+    return seleccion;
 }
 
 /*
- *  TODO 4: retroceder
+ * retroceder
  *
- *  Retrocede la selección "n" posiciones hacia atrás (previo).
- *
- *  Retorna: el nodo en la nueva posición.
+ * Retrocede la selección "n" posiciones hacia atrás (previo).
  */
 dllista *retroceder(dllista *seleccion, int n) {
-    /* -------- COMPLETAR --------
-     * Recorre "n" veces usando seleccion->previo.
-     * --------------------------- */
-
-
-    return seleccion; /* Sustituir si es necesario */
+    if (seleccion == NULL) return NULL;
+    
+    /* Recorre "n" veces hacia atrás */
+    for (int i = 0; i < n; i++) {
+        seleccion = seleccion->previo;
+    }
+    return seleccion;
 }
 
 /* ================================================================
- *  Simulación del carrusel de inventario
+ * Simulación del carrusel de inventario
  * ================================================================ */
 
 int main(void) {
     printf("╔══════════════════════════════════════╗\n");
-    printf("║     CARRUSEL DE INVENTARIO           ║\n");
+    printf("║    CARRUSEL DE INVENTARIO            ║\n");
     printf("╚══════════════════════════════════════╝\n\n");
 
     /* --- Construir el inventario inicial --- */
